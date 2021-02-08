@@ -7,7 +7,9 @@ output: html_document
 
 # Iteration and animation: Loops, GIFs, and videos
 
-This script servers as an introduction for creating animated GIFs and videos from charts made in R with ggplot2, using the gganimate package. See <https://paldhous.github.io/ucb/2018/dataviz/week14.html> for full article. When running this code in R Studio, when you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+This script servers as an introduction for creating animated GIFs and videos from charts made in R with ggplot2, using the gganimate package. See <https://paldhous.github.io/ucb/2018/dataviz/week14.html> for full article, along with original code.
+
+When running this code in R Studio, when you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
 
 
 ## Load the required packages to the R Session. 
@@ -21,6 +23,7 @@ library(gganimate)
 library(scales)
 library(dplyr)
 library(transformr)
+library(viridis)
 ```
 
 First, read the nations data into the R session. This data contains the GPD per capita and life expectancy (among other variables) which is used for creating both static and animated charts. 
@@ -52,18 +55,7 @@ ggplot(nations2016, aes(x = gdp_percap, y = life_expect)) +
   theme(legend.position=c(0.8,0.4))
 ```
 
-Some reminders about what this code does:
-
-* **scale_size_area** ensures that the size of the circles scales by their area according to the population data, up to the specified **max_size**; **guide = FALSE** within the brackets of this function prevents a legend for size being drawn.
-
-* **labels = dollar** from scales formats the X axis labels as currency in dollars.
-
-* **stat_smooth** works like **geom_smooth** but allows you to use a **formula** to specify the type of curve to use for to trend line fitted to the data, here a logarithmic curve.
-
-Now we will use gganimate to generate an animation of the chart, from 1990 to 2016. Here is the code.
-
-Running this code will create an R object of type gganim called nations_plot. Now display it in the Viewer panel by running the following.
-
+The code below will create an animated version of the chart above showing the changes from 1990 to 2016. Running this code will create an R plot called  nations_plot. If running in R Studio, it will appear in the Viewer pane. 
 ```{r gpd_life_expectancy_an, echo=FALSE}
 # animate entire time series with gganimate
 nations_plot <- ggplot(nations, aes(x = gdp_percap, y = life_expect)) +
@@ -90,14 +82,14 @@ animate(nations_plot)
 
 ##How the gganimate code works
 
-* **transition_time** This function animates the data by year, showing only the data that is relevant for any one point in time. As well as generating a frame for each year, it also generates intermediate frames to give a smooth animation.
-* **Using** "{frame_time}" within the ggtitle function puts a title on each frame with the corresponding value from the variable in the transition_time function, here year.
-* **ease_aes** This controls how the animation progresses. If animating over a time series, always use the option "linear" to ensure a constant speed for the animation. Other available options can be used when animating between different states of a chart, rather than over time, as we will see below.
-* **enter_fade** exit_fade These functions control the behavior where a data point appears or disappears from the animation. You can also use enter_shrink and exit_shrink.
+* **transition_time** animates the data by year variable, generating a frame (or static version) of the chart for each year. 
+* **ggtitle("{frame_time}")** adds the year title to each frame.
+* **ease_aes** controls how the animation progresses. If animating over a time series, always use the option "linear" to ensure a constant speed.
+* **enter_fade** and **exit_fade* functions control the behavior where a data point appears or disappears from the animation.
 
 ##Save as a GIF and a video
 
-We can now save the animation as a GIF or video
+Below saves the animation as a GI.
 ```{r, echo=FALSE}
 # save as a GIF
 animate(nations_plot, fps = 10, width = 750, height = 450)
@@ -106,6 +98,7 @@ anim_save("animations/nations.gif")
 
 ##Make a cumulative animation of historical global average temperature
 
+The code below demonstrates a scatter plot style of chart and animation. Using a new dataset, **warming**, we will plot the difference from the mean temperature for 1900-2000, from 1880 to 2016. 
 
 ```{r warming_st, echo=FALSE, fig.cap="Degree deviation from mean temperature (1900-2000), by year"}
 # load data
@@ -115,17 +108,17 @@ warming <- read_csv("data/warming.csv")
 head(warming)
 
 # draw chart
-warming_plot <- ggplot(warming, aes(x = year, y = value)) +
-  geom_line(colour="black") +
+w_plot <- ggplot(warming, aes(x = year, y = value)) +
+  geom_line(colour="grey") +
   geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
   scale_x_continuous(limits = c(1880,2017)) +
   scale_y_continuous(limits = c(-0.5,1)) +
-  scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
-  xlab("") +
-  ylab("Difference from 1900-2000 (ºC)") +
-  theme_minimal(base_size = 16, base_family = "Georgia")
+  scale_fill_distiller(palette = "YlGnBu", limits = c(-0.5,1), guide = FALSE) +
+  xlab("Year") +
+  ylab("Difference from average temp 1900-2000 (ºC)") +
+  theme_minimal()
 
-warming_plot
+w_plot
 ```
 
 The file warming.csv contains the fields year and value, the latter being the global annual average temperature, compared to the 1900-2000 average.
