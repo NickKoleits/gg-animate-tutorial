@@ -12,5 +12,5 @@ The repo contains a [R Markdown file](gg_animate.rmd) for creating animated ggpl
 
 1. GDP per capita by life expectancy at birth, from 1990 to 2016 ![Nations plot](animations/nations.gif)
 2. A scatter plot of Difference from mean global temperature (1900-2000), from 1880 to 2017 ![Scatter plot](animations/warming_points.gif)
-3. Simulation of global average temperature, Human vs Natural ![Line chart](animations/warming_points.gif)
+3. Simulation of global average temperature, Human vs Natural ![Line chart](animations/simulations.gif)
 
