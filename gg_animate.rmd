@@ -24,6 +24,7 @@ library(scales)
 library(dplyr)
 library(transformr)
 library(viridis)
+library(ggdark)
 ```
 
 First, read the nations data into the R session. This data contains the GPD per capita and life expectancy (among other variables) which is used for creating both static and animated charts. 
@@ -98,7 +99,7 @@ anim_save("animations/nations.gif")
 
 ##Make a cumulative animation of historical global average temperature
 
-The code below demonstrates a scatter plot style of chart and animation. Using a new dataset, **warming**, we will plot the difference from the mean temperature for 1900-2000, from 1880 to 2016. 
+The code below demonstrates a scatter plot style of chart and animation. Using a new dataset, **warming**, we will plot the difference from the mean temperature for 1900-2000, from 1880 to 2017. 
 
 ```{r warming_st, echo=FALSE, fig.cap="Degree deviation from mean temperature (1900-2000), by year"}
 # load data
@@ -121,32 +122,29 @@ w_plot <- ggplot(warming, aes(x = year, y = value)) +
 w_plot
 ```
 
-The file warming.csv contains the fields year and value, the latter being the global annual average temperature, compared to the 1900-2000 average.
+The file warming.csv contains the variables year and value. Value is the global annual average temperature, compared to the average global temperature from 1900-2000.
 
-As this is a dot-and-line chart, it includes both geom_line and geom_point layers. Notice that the geom_point function also defines a numbered shape: 21 is a circle with a filled area, see here for other options. By using this shape, we can set the outline color to black and then use an aes mapping to fill it with color, according to the temperature value.
-
-The code uses scale_fill_distiller to use a ColorBrewer palette running from cool blues, through neutral yellows, to warm reds, applying them across a range of values from -1 to +1.
-
+The code below creates an animated point version of the chart above, viewable in the R Studio Viewer pane and saved as a gif. 
 ```{r warming_an, echo=FALSE}
 # draw chart
-warming_points <- ggplot(warming, aes(x = year, y = value)) +
+w_plot_point <- ggplot(warming, aes(x = year, y = value)) +
+  geom_line(colour="grey") +
   geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
   scale_x_continuous(limits = c(1880,2017)) +
   scale_y_continuous(limits = c(-0.5,1)) +
-  scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
-  xlab("") +
-  ylab("Difference from 1900-2000 (ºC)") +
-  theme_minimal(base_size = 16, base_family = "Georgia") +
+  scale_fill_distiller(palette = "YlGnBu", limits = c(-0.5,1), guide = FALSE) +
+  xlab("Year") +
+  ylab("Difference from average temp 1900-2000 (ºC)") +
+  theme_minimal()
   # gganimate code
   transition_time(year) +
   shadow_mark()
 
 # save as a GIF
-animate(warming_points, fps = 10, width = 750, height = 450)
+animate(w_plot_point, fps = 10, width = 750, height = 450)
 anim_save("animations/warming_points.gif")
 ```
-
-
+Since the static version of the chart above used both geom_point and geom_line layers, we need to create individual plots for each year and convert to a gif to create the animated version of the plot. The code below loops over all years  **years <- c(1880:2017)** in the data and creates a single plot for each, saving it to file.
 
 ```{r, echo=FALSE}
 # make a list of years, from 1880 to 2017
@@ -156,22 +154,23 @@ years <- c(1880:2017)
 for (y in years) {
   tmp <- warming %>%
     filter(year <= y)
-  chart <- ggplot(tmp, aes(x = year, y = value)) + 
-    geom_line(colour = "black") +
-    geom_point(shape = 21, colour = "black", aes(fill = value), size = 5, stroke = 1) +
-    scale_x_continuous(limits = c(1880,2017)) +
-    scale_y_continuous(limits = c(-0.5,1)) +
-    scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
-    xlab("") +
-    ylab("Difference from 1900-2000 (ºC)") +
-    theme_minimal(base_size = 16, base_family = "Georgia")
-  ggsave(file = paste0("data/charts/",y,".jpg"), plot = chart, width = 8, height = 4.5, units = "in", dpi = 300)
+  chart <- ggplot(warming, aes(x = year, y = value)) +
+  geom_line(colour="grey") +
+  geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
+  scale_x_continuous(limits = c(1880,2017)) +
+  scale_y_continuous(limits = c(-0.5,1)) +
+  scale_fill_distiller(palette = "YlGnBu", limits = c(-0.5,1), guide = FALSE) +
+  xlab("Year") +
+  ylab("Difference from average temp 1900-2000 (ºC)") +
+  theme_minimal()
+  ggsave(file = paste0("charts/",y,".jpg"), plot = chart, width = 8, height = 4.5, units = "in", dpi = 300)
   print(paste0("processing: ",y))
 }
 
 ```
-Make an animation that switches between a simulation of human effects on global average temperature, and natural ones
-Looped animations can also be used to switch between different states, or filtered views of the data. To illustrate this we will load the NASA data showing a simulation from climate models of how the global average temperature would have changed under the influence of natural events, such as variation in radiation from the Sun and the cooling effect of soot from volcanoes, compared to human influences, mostly emissions of carbon dioxide and other greenhouse gases.
+Another useful type of animation is one that switches between two states to show the difference between two categories, periods of any other variables of comparison. The chart below switches between a simulation of human effects on global average temperature, and natural ones
+
+The **simulations** data below shows a simulation based on climate models of how the global average temperature would have changed under the influence of natural events, such as variation in radiation from the Sun and the cooling effect of soot from volcanoes, compared to human influences, mostly emissions of carbon dioxide and other greenhouse gases.
 
 First, read in and inspect the data.
 
@@ -182,18 +181,26 @@ simulations <- read_csv("data/simulations.csv")
 # inspect data
 head(simulations)
 ```
+##How the gganimate code works
+
+**transition_state.** This switches between different filtered states of the data, here defined by the variable type. transition_length is the length of the transition in seconds, and state_length is the pause at each state, again in seconds.
+
+**ease_aes** With a state transition animation, using options that vary the speed of the transition, with a slower start and finish than the middle section, give a more visually pleaseing effect. Try "cubic-in-out" or "sine_in_out"
+
+Using **"{closest_state}**" in the ggtitle function displays the appropriate value for the variable used to define the states, here type.
+
 
 This code will load the data and make the animation:
 
-```{r, echo=FALSE}
+```{r simulation_an, echo=FALSE}
 # draw chart
 simulations_plot <- ggplot(simulations, aes(x=year, y=value, color = value)) +
-  geom_line(size = 1) +
+  geom_line(size = 1.5) +
   scale_y_continuous(limits = c(-0.6,0.75)) +
-  scale_colour_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
-  ylab("Diff. from 1900-2000 average (ºC)") +
-  xlab("") +
-  theme_dark(base_size = 16, base_family = "Georgia") +
+  scale_colour_distiller(palette = "RdYlBu", limits = c(-0.6,0.75), guide = FALSE) +
+  ylab("Difference from 1900-2000 average (ºC)") +
+  xlab("Year") +
+  dark_theme_dark(base_size = 16) +
   #gganimate code
   ggtitle("{closest_state}") +
   transition_states(
@@ -208,10 +215,3 @@ animate(simulations_plot, fps = 10, width = 750, height = 450)
 anim_save("animations/simulations.gif")
 ```
 
-##How the gganimate code works
-
-**transition_state.** This switches between different filtered states of the data, here defined by the variable type. transition_length is the length of the transition in seconds, and state_length is the pause at each state, again in seconds.
-
-**ease_aes** With a state transition animation, using options that vary the speed of the transition, with a slower start and finish than the middle section, give a more visually pleaseing effect. Try "cubic-in-out" or "sine_in_out"
-
-Using **"{closest_state}**" in the ggtitle function displays the appropriate value for the variable used to define the states, here type.
