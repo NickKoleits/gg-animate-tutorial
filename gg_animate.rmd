@@ -90,7 +90,7 @@ animate(nations_plot)
 
 ##Save as a GIF and a video
 
-Below saves the animation as a GI.
+Below saves the animation as a GIF.
 ```{r, echo=FALSE}
 # save as a GIF
 animate(nations_plot, fps = 10, width = 750, height = 450)
@@ -127,21 +127,20 @@ The file warming.csv contains the variables year and value. Value is the global 
 The code below creates an animated point version of the chart above, viewable in the R Studio Viewer pane and saved as a gif. 
 ```{r warming_an, echo=FALSE}
 # draw chart
-w_plot_point <- ggplot(warming, aes(x = year, y = value)) +
-  geom_line(colour="grey") +
+warming_points <- ggplot(warming, aes(x = year, y = value)) +
   geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
   scale_x_continuous(limits = c(1880,2017)) +
   scale_y_continuous(limits = c(-0.5,1)) +
-  scale_fill_distiller(palette = "YlGnBu", limits = c(-0.5,1), guide = FALSE) +
+  scale_fill_distiller(palette = "YlGnBu", limits = c(-1,1), guide = FALSE) +
   xlab("Year") +
   ylab("Difference from average temp 1900-2000 (ºC)") +
-  theme_minimal()
+  theme_minimal(base_size = 16) +
   # gganimate code
   transition_time(year) +
   shadow_mark()
 
 # save as a GIF
-animate(w_plot_point, fps = 10, width = 750, height = 450)
+animate(warming_points, fps = 10, width = 750, height = 450)
 anim_save("animations/warming_points.gif")
 ```
 Since the static version of the chart above used both geom_point and geom_line layers, we need to create individual plots for each year and convert to a gif to create the animated version of the plot. The code below loops over all years  **years <- c(1880:2017)** in the data and creates a single plot for each, saving it to file.
@@ -197,7 +196,7 @@ This code will load the data and make the animation:
 simulations_plot <- ggplot(simulations, aes(x=year, y=value, color = value)) +
   geom_line(size = 1.5) +
   scale_y_continuous(limits = c(-0.6,0.75)) +
-  scale_colour_distiller(palette = "RdYlBu", limits = c(-0.6,0.75), guide = FALSE) +
+  scale_colour_distiller(palette = "RdYlBu", limits = c(-0.4,0.7), guide = FALSE) +
   ylab("Difference from 1900-2000 average (ºC)") +
   xlab("Year") +
   dark_theme_dark(base_size = 16) +
