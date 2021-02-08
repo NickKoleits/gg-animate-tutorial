@@ -1,0 +1,220 @@
+---
+title: "gg_animate"
+author: "Nick Koleits"
+date: "08/02/2021"
+output: html_document
+---
+
+# Iteration and animation: Loops, GIFs, and videos
+
+This script servers as an introduction for creating animated GIFs and videos from charts made in R with ggplot2, using the gganimate package. See <https://paldhous.github.io/ucb/2018/dataviz/week14.html> for full article. When running this code in R Studio, when you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+
+## Load the required packages to the R Session. 
+If not already installed, do so using **install.packages("package_name")**.
+
+```{r, echo=FALSE}
+# load required packages
+library(readr)
+library(ggplot2)
+library(gganimate)
+library(scales)
+library(dplyr)
+library(transformr)
+```
+
+First, read the nations data into the R session. This data contains the GPD per capita and life expectancy (among other variables) which we will use for creating both static, and animated charts. 
+
+```{r, echo=FALSE}
+# load data
+nations <- read_csv("data/nations.csv")
+head(nations)
+```
+
+```{r, echo=FALSE}
+
+# filter for 2016 data only
+nations2016 <- nations %>%
+  filter(year == 2016)
+
+# make bubble chart
+ggplot(nations2016, aes(x = gdp_percap, y = life_expect)) +
+  xlab("GDP per capita") +
+  ylab("Life expectancy at birth") +
+  theme_minimal(base_size = 12, base_family = "Georgia") +
+  geom_point(aes(size = population, color = region), alpha = 0.7) +
+  scale_size_area(guide = FALSE, max_size = 15) +
+  scale_x_continuous(labels = dollar) +
+  stat_smooth(formula = y ~ log10(x), se = FALSE, size = 0.5, color = "black", linetype="dotted") +
+  scale_color_brewer(name = "", palette = "Set2") +
+  theme(legend.position=c(0.8,0.4))
+```
+
+Some reminders about what this code does:
+
+* **scale_size_area** ensures that the size of the circles scales by their area according to the population data, up to the specified **max_size**; **guide = FALSE** within the brackets of this function prevents a legend for size being drawn.
+
+* **labels = dollar** from scales formats the X axis labels as currency in dollars.
+
+* **stat_smooth** works like **geom_smooth** but allows you to use a **formula** to specify the type of curve to use for to trend line fitted to the data, here a logarithmic curve.
+
+Now we will use gganimate to generate an animation of the chart, from 1990 to 2016. Here is the code.
+
+Running this code will create an R object of type gganim called nations_plot. Now display it in the Viewer panel by running the following.
+
+```{r, echo=FALSE}
+# animate entire time series with gganimate
+nations_plot <- ggplot(nations, aes(x = gdp_percap, y = life_expect)) +
+  xlab("GDP per capita") +
+  ylab("Life expectancy at birth") +
+  theme_minimal(base_size = 12, base_family = "Georgia") +
+  geom_point(aes(size = population, color = region), alpha = 0.7) +
+  scale_size_area(guide = FALSE, max_size = 15) +
+  scale_x_continuous(labels = dollar) +
+  stat_smooth(formula = y ~ log10(x), se = FALSE, size = 0.5, color = "black", linetype="dotted") +
+  scale_color_brewer(name = "", palette = "Set2") +
+  theme(legend.position=c(0.8,0.4)) +
+  
+  # gganimate code
+  ggtitle("{frame_time}") +
+  transition_time(year) +
+  ease_aes("linear") +
+  enter_fade() +
+  exit_fade()
+
+# code below displays the animated chart in the viewer pane
+animate(nations_plot)
+```
+
+##How the gganimate code works
+
+* **transition_time** This function animates the data by year, showing only the data that is relevant for any one point in time. As well as generating a frame for each year, it also generates intermediate frames to give a smooth animation.
+* **Using** "{frame_time}" within the ggtitle function puts a title on each frame with the corresponding value from the variable in the transition_time function, here year.
+* **ease_aes** This controls how the animation progresses. If animating over a time series, always use the option "linear" to ensure a constant speed for the animation. Other available options can be used when animating between different states of a chart, rather than over time, as we will see below.
+* **enter_fade** exit_fade These functions control the behavior where a data point appears or disappears from the animation. You can also use enter_shrink and exit_shrink.
+
+##Save as a GIF and a video
+
+We can now save the animation as a GIF or video
+```{r, echo=FALSE}
+# save as a GIF
+animate(nations_plot, fps = 10, width = 750, height = 450)
+anim_save("animations/nations.gif")
+```
+
+##Make a cumulative animation of historical global average temperature
+
+
+```{r, echo=FALSE, fig.cap="Degree deviation from mean temperature (1900-2000), by year"}
+# load data
+warming <- read_csv("data/warming.csv")
+
+# inspect data
+head(warming)
+
+# draw chart
+warming_plot <- ggplot(warming, aes(x = year, y = value)) +
+  geom_line(colour="black") +
+  geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
+  scale_x_continuous(limits = c(1880,2017)) +
+  scale_y_continuous(limits = c(-0.5,1)) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
+  xlab("") +
+  ylab("Difference from 1900-2000 (ºC)") +
+  theme_minimal(base_size = 16, base_family = "Georgia")
+
+warming_plot
+```
+
+The file warming.csv contains the fields year and value, the latter being the global annual average temperature, compared to the 1900-2000 average.
+
+As this is a dot-and-line chart, it includes both geom_line and geom_point layers. Notice that the geom_point function also defines a numbered shape: 21 is a circle with a filled area, see here for other options. By using this shape, we can set the outline color to black and then use an aes mapping to fill it with color, according to the temperature value.
+
+The code uses scale_fill_distiller to use a ColorBrewer palette running from cool blues, through neutral yellows, to warm reds, applying them across a range of values from -1 to +1.
+
+```{r, echo=FALSE}
+# draw chart
+warming_points <- ggplot(warming, aes(x = year, y = value)) +
+  geom_point(shape = 21, colour = "black", aes(fill = value), size=5, stroke=1) +
+  scale_x_continuous(limits = c(1880,2017)) +
+  scale_y_continuous(limits = c(-0.5,1)) +
+  scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
+  xlab("") +
+  ylab("Difference from 1900-2000 (ºC)") +
+  theme_minimal(base_size = 16, base_family = "Georgia") +
+  # gganimate code
+  transition_time(year) +
+  shadow_mark()
+
+# save as a GIF
+animate(warming_points, fps = 10, width = 750, height = 450)
+anim_save("animations/warming_points.gif")
+```
+
+```{r, echo=FALSE}
+# make a list of years, from 1880 to 2017
+years <- c(1880:2017)
+
+# loop to make a chart for each year
+for (y in years) {
+  tmp <- warming %>%
+    filter(year <= y)
+  chart <- ggplot(tmp, aes(x = year, y = value)) + 
+    geom_line(colour = "black") +
+    geom_point(shape = 21, colour = "black", aes(fill = value), size = 5, stroke = 1) +
+    scale_x_continuous(limits = c(1880,2017)) +
+    scale_y_continuous(limits = c(-0.5,1)) +
+    scale_fill_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
+    xlab("") +
+    ylab("Difference from 1900-2000 (ºC)") +
+    theme_minimal(base_size = 16, base_family = "Georgia")
+  ggsave(file = paste0("data/charts/",y,".jpg"), plot = chart, width = 8, height = 4.5, units = "in", dpi = 300)
+  print(paste0("processing: ",y))
+}
+
+```
+Make an animation that switches between a simulation of human effects on global average temperature, and natural ones
+Looped animations can also be used to switch between different states, or filtered views of the data. To illustrate this we will load the NASA data showing a simulation from climate models of how the global average temperature would have changed under the influence of natural events, such as variation in radiation from the Sun and the cooling effect of soot from volcanoes, compared to human influences, mostly emissions of carbon dioxide and other greenhouse gases.
+
+First, read in and inspect the data.
+
+```{r, echo=FALSE}
+# load data
+simulations <- read_csv("data/simulations.csv")
+
+# inspect data
+head(simulations)
+```
+
+This code will load the data and make the animation:
+
+```{r, echo=FALSE}
+# draw chart
+simulations_plot <- ggplot(simulations, aes(x=year, y=value, color = value)) +
+  geom_line(size = 1) +
+  scale_y_continuous(limits = c(-0.6,0.75)) +
+  scale_colour_distiller(palette = "RdYlBu", limits = c(-1,1), guide = FALSE) +
+  ylab("Diff. from 1900-2000 average (ºC)") +
+  xlab("") +
+  theme_dark(base_size = 16, base_family = "Georgia") +
+  #gganimate code
+  ggtitle("{closest_state}") +
+  transition_states(
+    type,
+    transition_length = 0.5,
+    state_length = 2
+  ) +
+  ease_aes("sine-in-out")
+
+# save as a GIF
+animate(simulations_plot, fps = 10, width = 750, height = 450)
+anim_save("animations/simulations.gif")
+```
+
+##How the gganimate code works
+
+transition_state. This switches between different filtered states of the data, here defined by the variable type. transition_length is the length of the transition in seconds, and state_length is the pause at each state, again in seconds.
+
+ease_aes With a state transition animation, using options that vary the speed of the transition, with a slower start and finish than the middle section, give a more visually pleaseing effect. Try "cubic-in-out" or "sine_in_out"
+
+Using "{closest_state}" in the ggtitle function displays the appropriate value for the variable used to define the states, here type.
